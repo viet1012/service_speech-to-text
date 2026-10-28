@@ -1,16 +1,37 @@
 import io
 import logging
 import os
+import sys
+import sysconfig
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
-import numpy as np
-from faster_whisper import WhisperModel, decode_audio
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
-
 logger = logging.getLogger(__name__)
+
+
+def add_nvidia_dll_directories() -> list[str]:
+    # pip-installed nvidia-* wheels put their DLLs where ctranslate2 cannot find them on Windows.
+    if sys.platform != "win32":
+        return []
+    nvidia_root = Path(sysconfig.get_paths()["purelib"]) / "nvidia"
+    added = []
+    for package in ("cublas", "cudnn", "cuda_nvrtc"):
+        bin_dir = nvidia_root / package / "bin"
+        if bin_dir.is_dir():
+            os.add_dll_directory(str(bin_dir))
+            os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
+            added.append(str(bin_dir))
+    return added
+
+
+# Must run before faster_whisper/ctranslate2 are imported.
+NVIDIA_DLL_DIRECTORIES = add_nvidia_dll_directories()
+
+import numpy as np  # noqa: E402
+from faster_whisper import WhisperModel, decode_audio  # noqa: E402
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_DURATION_SECONDS = 60
@@ -46,6 +67,10 @@ def load_model() -> WhisperModel:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if NVIDIA_DLL_DIRECTORIES:
+        logger.info("Added NVIDIA DLL directories: %s", ", ".join(NVIDIA_DLL_DIRECTORIES))
+    else:
+        logger.info("No NVIDIA DLL directories found in site-packages")
     app.state.whisper_model = load_model()
     yield
 
