@@ -22,7 +22,7 @@ python main.py
 
 This starts the service with Uvicorn. Configure with environment variables: `WHISPER_MODEL` (default `large-v3`), `HOST` (default `127.0.0.1`), and `PORT` (default `8000`). For example, set `WHISPER_MODEL=small` to use a smaller model. To launch with the Uvicorn CLI and default bind settings, use `uvicorn main:app --host 127.0.0.1 --port 8000`.
 
-`POST /transcribe` accepts multipart fields `file` (webm/ogg/wav), `language` (`vi`, `en`, or `ja`), and optional `prompt` (glossary/context). Files are limited to 10 MB and 60 seconds. The JSON response contains `text`, detected `language`, and audio `duration` in seconds.
+`POST /transcribe` accepts multipart fields `file` (webm/ogg/wav/m4a/mp3/mp4/aac/flac), `language` (`vi`, `en`, or `ja`), and optional `prompt` (glossary/context). Files are limited to 10 MB and 60 seconds. The JSON response contains `text`, detected `language`, and audio `duration` in seconds.
 
 ## GPU
 

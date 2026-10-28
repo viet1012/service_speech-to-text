@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_DURATION_SECONDS = 60
 SAMPLE_RATE = 16000
-ALLOWED_EXTENSIONS = {".webm", ".ogg", ".wav"}
+ALLOWED_EXTENSIONS = {".webm", ".ogg", ".wav", ".m4a", ".mp3", ".mp4", ".aac", ".flac"}
 
 
 class TranscriptionResponse(BaseModel):
@@ -58,7 +58,7 @@ def load_audio(content: bytes) -> np.ndarray:
     try:
         audio = decode_audio(io.BytesIO(content), sampling_rate=SAMPLE_RATE)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid or unsupported audio file") from exc
+        raise HTTPException(status_code=400, detail="Không đọc được file audio") from exc
 
     if audio.size == 0:
         raise HTTPException(status_code=400, detail="Audio contains no samples")
@@ -75,7 +75,10 @@ def transcribe(
 ) -> TranscriptionResponse:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=415, detail="Audio file must be webm, ogg, or wav")
+        raise HTTPException(
+            status_code=415,
+            detail="Audio file must be webm, ogg, wav, m4a, mp3, mp4, aac, or flac",
+        )
 
     content = file.file.read(MAX_FILE_SIZE + 1)
     if len(content) > MAX_FILE_SIZE:
